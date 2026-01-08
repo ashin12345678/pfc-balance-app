@@ -1,9 +1,5 @@
-import Link from 'next/link'
-import { Plus } from 'lucide-react'
 import { Header } from '@/components/layout/Header'
-import { Button } from '@/components/ui/button'
-import { MealList } from '@/components/features/meals/MealList'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { MealsClient } from '@/components/features/meals/MealsClient'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { toDateString, formatDate, getPastDates } from '@/lib/utils/date'
 import type { MealType } from '@/types/meal'
@@ -41,6 +37,7 @@ export default async function MealsPage() {
       fat: meal.fat_g,
       carb: meal.carb_g,
       createdAt: meal.created_at,
+      servingSize: meal.serving_size,
     })
     return acc
   }, {} as Record<string, any[]>)
@@ -52,55 +49,7 @@ export default async function MealsPage() {
       <Header title="食事記録" />
 
       <div className="container max-w-4xl mx-auto p-4 md:p-6">
-        {/* 追加ボタン */}
-        <div className="flex justify-end mb-6">
-          <Link href="/meals/new">
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              食事を追加
-            </Button>
-          </Link>
-        </div>
-
-        {/* 日付タブ */}
-        {dates.length > 0 ? (
-          <Tabs defaultValue={dates[0]} className="space-y-4">
-            <TabsList className="w-full flex overflow-x-auto">
-              {dates.slice(0, 7).map((date) => (
-                <TabsTrigger key={date} value={date} className="flex-1 min-w-[80px]">
-                  {formatDate(date, 'M/d')}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            {dates.map((date) => {
-              const dayMeals = mealsByDate[date] || []
-              const totalCalories = dayMeals.reduce((sum: number, m: any) => sum + m.calories, 0)
-
-              return (
-                <TabsContent key={date} value={date} className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h2 className="font-semibold">{formatDate(date, 'yyyy年M月d日(E)')}</h2>
-                    <span className="text-sm text-muted-foreground">
-                      合計: {totalCalories.toFixed(0)} kcal
-                    </span>
-                  </div>
-                  <MealList meals={dayMeals} groupByType />
-                </TabsContent>
-              )
-            })}
-          </Tabs>
-        ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>まだ食事が記録されていません</p>
-            <Link href="/meals/new">
-              <Button className="mt-4">
-                <Plus className="mr-2 h-4 w-4" />
-                最初の食事を記録
-              </Button>
-            </Link>
-          </div>
-        )}
+        <MealsClient initialMealsByDate={mealsByDate} initialDates={dates} />
       </div>
     </div>
   )

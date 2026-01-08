@@ -170,3 +170,59 @@ export async function DELETE(request: NextRequest) {
     )
   }
 }
+
+// PATCH: 食事記録の更新
+export async function PATCH(request: NextRequest) {
+  try {
+    const supabase = createServerSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: '認証が必要です' },
+        { status: 401 }
+      )
+    }
+
+    const body = await request.json()
+    const { id, foodName, calories, proteinG, fatG, carbG, servingSize } = body
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: 'IDが指定されていません' },
+        { status: 400 }
+      )
+    }
+
+    const { data, error } = await (supabase
+      .from('meal_logs') as any)
+      .update({
+        food_name: foodName,
+        calories: calories,
+        protein_g: proteinG,
+        fat_g: fatG,
+        carb_g: carbG,
+        serving_size: servingSize,
+      })
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select()
+      .single()
+
+    if (error) throw error
+
+    return NextResponse.json({
+      success: true,
+      data,
+    })
+  } catch (error) {
+    console.error('Meals PATCH error:', error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : '食事記録の更新に失敗しました',
+      },
+      { status: 500 }
+    )
+  }
+}
