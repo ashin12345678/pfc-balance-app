@@ -4,6 +4,44 @@ import { MEAL_ANALYSIS_PROMPT } from '@/lib/ai/prompts'
 import { parseMealAnalysisResponse } from '@/lib/ai/parsers'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 
+// リトライ設定
+const MAX_RETRIES = 3
+const INITIAL_DELAY_MS = 1000
+
+// 指数バックオフでリトライする関数
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = MAX_RETRIES,
+  initialDelay: number = INITIAL_DELAY_MS
+): Promise<T> {
+  let lastError: Error | null = null
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error))
+      
+      // 503エラー（オーバーロード）の場合のみリトライ
+      const errorMessage = lastError.message || ''
+      const isRetryable = errorMessage.includes('503') || 
+                          errorMessage.includes('overloaded') ||
+                          errorMessage.includes('UNAVAILABLE')
+      
+      if (!isRetryable || attempt === maxRetries - 1) {
+        throw lastError
+      }
+      
+      // 指数バックオフで待機
+      const delay = initialDelay * Math.pow(2, attempt)
+      console.log(`AI API retry attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms...`)
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  
+  throw lastError
+}
+
 export async function POST(request: NextRequest) {
   try {
     // 認証チェック
@@ -56,9 +94,12 @@ export async function POST(request: NextRequest) {
 
 上記のuser_input内の食事内容のみを解析し、JSONのみを返してください。`
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
+    // リトライロジック付きでAPI呼び出し
+    const response = await retryWithBackoff(async () => {
+      return await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+      })
     })
 
     const content = response.text
@@ -83,8 +124,18 @@ export async function POST(request: NextRequest) {
     console.error('AI analysis error:', error)
     
     let errorMessage = '解析に失敗しました'
+    let statusCode = 500
+    
     if (error instanceof Error) {
-      errorMessage = error.message
+      const msg = error.message || ''
+      
+      // 503エラー（オーバーロード）の場合はユーザーフレンドリーなメッセージ
+      if (msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE')) {
+        errorMessage = 'AIサーバーが混雑しています。しばらく待ってからもう一度お試しください。'
+        statusCode = 503
+      } else {
+        errorMessage = msg
+      }
     }
     
     return NextResponse.json(
@@ -92,7 +143,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: errorMessage,
       },
-      { status: 500 }
+      { status: statusCode }
     )
   }
 }
