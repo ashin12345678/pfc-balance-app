@@ -79,7 +79,7 @@ export default function NewMealPage() {
           serving_size: food.servingSize,
           ai_response: analysisResult,
           confidence_score: analysisResult.confidence,
-        })
+        } as any)
 
         if (error) throw error
       }

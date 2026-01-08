@@ -69,18 +69,19 @@ export default function RegisterPage() {
 
       if (data.user) {
         // プロフィール作成（デフォルト値で初期化）
+        const profileData = {
+          id: data.user.id,
+          email: email,
+          display_name: displayName || '塚田',
+          height_cm: 172,
+          weight_kg: 76,
+          age: 30,
+          gender: 'male' as const,
+          goal_type: 'diet' as const,
+        }
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
-            id: data.user.id,
-            email: email,
-            display_name: displayName || '塚田',
-            height_cm: 172,
-            weight_kg: 76,
-            age: 30,
-            gender: 'male',
-            goal_type: 'diet',
-          })
+          .insert(profileData as any)
 
         if (profileError) {
           console.error('Profile creation error:', profileError)

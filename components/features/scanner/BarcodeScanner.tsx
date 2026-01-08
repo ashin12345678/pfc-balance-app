@@ -34,6 +34,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.CODE_39,
         ],
+        verbose: false,
       })
 
       scannerRef.current = scanner

@@ -15,7 +15,7 @@ export default async function HistoryPage() {
     .from('profiles')
     .select('*')
     .eq('id', user?.id || '')
-    .single()
+    .single() as { data: any }
 
   // 過去14日間のサマリー取得
   const pastDates = getPastDates(14)
@@ -27,7 +27,7 @@ export default async function HistoryPage() {
     .eq('user_id', user?.id || '')
     .gte('summary_date', startDate)
     .lte('summary_date', today)
-    .order('summary_date', { ascending: true })
+    .order('summary_date', { ascending: true }) as { data: any[] | null }
 
   const targetCalories = profile?.target_calories || 1800
   const targetProtein = profile?.target_protein_g || 135
@@ -37,20 +37,21 @@ export default async function HistoryPage() {
   // 過去7日間の平均
   const last7Days = (summaries || []).slice(-7)
   const avgCalories = last7Days.length > 0
-    ? last7Days.reduce((sum, s) => sum + s.total_calories, 0) / last7Days.length
+    ? last7Days.reduce((sum: number, s: any) => sum + s.total_calories, 0) / last7Days.length
     : 0
   const avgProtein = last7Days.length > 0
-    ? last7Days.reduce((sum, s) => sum + s.total_protein_g, 0) / last7Days.length
+    ? last7Days.reduce((sum: number, s: any) => sum + s.total_protein_g, 0) / last7Days.length
     : 0
   const avgFat = last7Days.length > 0
-    ? last7Days.reduce((sum, s) => sum + s.total_fat_g, 0) / last7Days.length
+    ? last7Days.reduce((sum: number, s: any) => sum + s.total_fat_g, 0) / last7Days.length
     : 0
   const avgCarb = last7Days.length > 0
-    ? last7Days.reduce((sum, s) => sum + s.total_carb_g, 0) / last7Days.length
+    ? last7Days.reduce((sum: number, s: any) => sum + s.total_carb_g, 0) / last7Days.length
     : 0
 
   // チャート用データ
-  const trendData = (summaries || []).slice(-7).map((s) => ({
+  const trendData = (summaries || []).slice(-7).map((s: any) => ({
+    label: s.summary_date,
     date: s.summary_date,
     calories: s.total_calories,
     protein: s.total_protein_g,
@@ -136,7 +137,6 @@ export default async function HistoryPage() {
           <CalorieGauge
             current={avgCalories}
             target={targetCalories}
-            title="7日間平均カロリー達成度"
           />
         </div>
 

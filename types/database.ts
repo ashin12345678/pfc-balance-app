@@ -14,11 +14,14 @@ export interface Database {
           id: string
           email: string | null
           display_name: string | null
+          birth_date: string | null
           height_cm: number
           weight_kg: number
+          target_weight_kg: number | null
           age: number
           gender: 'male' | 'female'
-          activity_level: number
+          activity_level: number | string
+          goal: 'lose' | 'maintain' | 'gain' | null
           goal_type: 'diet' | 'maintain' | 'bulk'
           calorie_adjustment: number
           target_protein_ratio: number
@@ -37,11 +40,14 @@ export interface Database {
           id: string
           email?: string | null
           display_name?: string | null
+          birth_date?: string | null
           height_cm?: number
           weight_kg?: number
+          target_weight_kg?: number | null
           age?: number
           gender?: 'male' | 'female'
-          activity_level?: number
+          activity_level?: number | string
+          goal?: 'lose' | 'maintain' | 'gain' | null
           goal_type?: 'diet' | 'maintain' | 'bulk'
           calorie_adjustment?: number
           target_protein_ratio?: number
@@ -60,11 +66,14 @@ export interface Database {
           id?: string
           email?: string | null
           display_name?: string | null
+          birth_date?: string | null
           height_cm?: number
           weight_kg?: number
+          target_weight_kg?: number | null
           age?: number
           gender?: 'male' | 'female'
-          activity_level?: number
+          activity_level?: number | string
+          goal?: 'lose' | 'maintain' | 'gain' | null
           goal_type?: 'diet' | 'maintain' | 'bulk'
           calorie_adjustment?: number
           target_protein_ratio?: number
@@ -275,3 +284,9 @@ export interface Database {
     }
   }
 }
+
+// 型エイリアスのエクスポート
+export type Profile = Database['public']['Tables']['profiles']['Row']
+export type MealLog = Database['public']['Tables']['meal_logs']['Row']
+export type DailySummary = Database['public']['Tables']['daily_summaries']['Row']
+export type FoodDatabase = Database['public']['Tables']['food_database']['Row']

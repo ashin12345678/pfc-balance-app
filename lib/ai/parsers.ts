@@ -79,3 +79,7 @@ export function parseAIAdviceResponse(response: string): AIAdvice | null {
     return null
   }
 }
+
+// エイリアスエクスポート
+export const parseMealAnalysisResponse = parseAIAnalysisResponse
+export const parseAdviceResponse = parseAIAdviceResponse

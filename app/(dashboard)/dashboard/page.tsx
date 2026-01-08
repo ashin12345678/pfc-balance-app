@@ -97,7 +97,7 @@ export default async function DashboardPage() {
     .from('profiles')
     .select('*')
     .eq('id', user?.id || '')
-    .single()
+    .single() as { data: any }
 
   // 今日の食事記録取得
   const { data: meals } = await supabase
@@ -105,7 +105,7 @@ export default async function DashboardPage() {
     .select('*')
     .eq('user_id', user?.id || '')
     .eq('meal_date', today)
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: true }) as { data: any[] | null }
 
   // 今日のサマリー取得
   const { data: summary } = await supabase
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
     .select('*')
     .eq('user_id', user?.id || '')
     .eq('summary_date', today)
-    .single()
+    .single() as { data: any }
 
   // デフォルト値
   const targetCalories = profile?.target_calories || 1800

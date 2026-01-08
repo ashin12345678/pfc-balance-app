@@ -89,7 +89,7 @@ export default function ScanPage() {
         fat_g: product.fat || 0,
         carb_g: product.carb || 0,
         serving_size: product.servingSize,
-      })
+      } as any)
 
       if (error) throw error
 
@@ -147,14 +147,8 @@ export default function ScanPage() {
         {/* スキャナー */}
         {isScanning && (
           <BarcodeScanner
-            onScanSuccess={handleScan}
-            onError={(error) => {
-              toast({
-                variant: 'destructive',
-                title: 'エラー',
-                description: error,
-              })
-            }}
+            onScan={handleScan}
+            onClose={() => setIsScanning(false)}
           />
         )}
 
@@ -175,14 +169,16 @@ export default function ScanPage() {
           <div className="space-y-4">
             <ScanResult
               barcode={product.barcode}
-              productName={product.name}
-              brands={product.brands}
-              calories={product.calories}
-              protein={product.protein}
-              fat={product.fat}
-              carb={product.carb}
-              servingSize={product.servingSize}
-              imageUrl={product.imageUrl}
+              product={{
+                name: product.name,
+                brand: product.brands,
+                calories: product.calories || 0,
+                protein: product.protein || 0,
+                fat: product.fat || 0,
+                carb: product.carb || 0,
+                servingSize: product.servingSize,
+                imageUrl: product.imageUrl,
+              }}
             />
 
             {/* アクションボタン */}

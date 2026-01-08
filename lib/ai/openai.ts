@@ -5,7 +5,7 @@ export const openai = new OpenAI({
 })
 
 // AI解析用のシステムプロンプト
-export const MEAL_ANALYSIS_SYSTEM_PROMPT = `あなたは栄養士AIです。ユーザーが入力した食事内容を解析し、栄養成分を推定してください。
+export const MEAL_ANALYSIS_PROMPT = `あなたは栄養士AIです。ユーザーが入力した食事内容を解析し、栄養成分を推定してください。
 
 ## タスク
 1. 入力されたテキストから料理名を特定する
@@ -38,7 +38,7 @@ export const MEAL_ANALYSIS_SYSTEM_PROMPT = `あなたは栄養士AIです。ユ�
 - 数値は小数点第1位まで
 - 必ず有効なJSONのみを返す（説明文は不要）`
 
-export const ADVICE_SYSTEM_PROMPT = `あなたは栄養管理アドバイザーAIです。ユーザーの1日の栄養摂取状況を分析し、具体的なアドバイスを提供してください。
+export const ADVICE_PROMPT = `あなたは栄養管理アドバイザーAIです。ユーザーの1日の栄養摂取状況を分析し、具体的なアドバイスを提供してください。
 
 ## タスク
 1. 現在の摂取量と目標値を比較する

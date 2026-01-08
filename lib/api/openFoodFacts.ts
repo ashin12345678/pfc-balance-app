@@ -70,3 +70,24 @@ export function calculateServingNutrition(
     carb: Math.round(product.carbPer100g * ratio * 10) / 10,
   }
 }
+
+/**
+ * バーコードから商品情報を取得（API用エイリアス）
+ */
+export async function fetchProductByBarcode(barcode: string) {
+  const product = await getProductByBarcode(barcode)
+  if (!product) return null
+  
+  const normalized = normalizeProductData(product)
+  return {
+    barcode: normalized.barcode,
+    name: normalized.name,
+    brands: normalized.brand,
+    calories: normalized.caloriesPer100g,
+    protein: normalized.proteinPer100g,
+    fat: normalized.fatPer100g,
+    carb: normalized.carbPer100g,
+    servingSize: normalized.servingSize,
+    imageUrl: normalized.imageUrl,
+  }
+}

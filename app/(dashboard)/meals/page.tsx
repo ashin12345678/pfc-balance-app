@@ -24,10 +24,10 @@ export default async function MealsPage() {
     .gte('meal_date', startDate)
     .lte('meal_date', today)
     .order('meal_date', { ascending: false })
-    .order('created_at', { ascending: true })
+    .order('created_at', { ascending: true }) as { data: any[] | null }
 
   // 日付別にグループ化
-  const mealsByDate = (meals || []).reduce((acc, meal) => {
+  const mealsByDate = (meals || []).reduce((acc: Record<string, any[]>, meal: any) => {
     const date = meal.meal_date
     if (!acc[date]) {
       acc[date] = []
@@ -75,7 +75,7 @@ export default async function MealsPage() {
 
             {dates.map((date) => {
               const dayMeals = mealsByDate[date] || []
-              const totalCalories = dayMeals.reduce((sum, m) => sum + m.calories, 0)
+              const totalCalories = dayMeals.reduce((sum: number, m: any) => sum + m.calories, 0)
 
               return (
                 <TabsContent key={date} value={date} className="space-y-4">

@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
         serving_size: servingSize,
         ai_response: aiResponse,
         confidence_score: confidenceScore,
-      })
+      } as any)
       .select()
       .single()
 

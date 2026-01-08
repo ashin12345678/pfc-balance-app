@@ -69,8 +69,8 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('ログインが必要です')
 
-      const { error } = await supabase
-        .from('profiles')
+      const { error } = await (supabase
+        .from('profiles') as any)
         .update({
           display_name: profile.display_name,
           gender: profile.gender,
@@ -226,7 +226,7 @@ export default function ProfilePage() {
               <div className="space-y-2">
                 <Label htmlFor="activityLevel">活動レベル</Label>
                 <Select
-                  value={profile.activity_level || ''}
+                  value={String(profile.activity_level) || ''}
                   onValueChange={(value) =>
                     setProfile({ ...profile, activity_level: value as ActivityLevel })
                   }

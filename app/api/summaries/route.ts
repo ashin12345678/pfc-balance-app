@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
         total_protein_g: 0,
         total_fat_g: 0,
         total_carb_g: 0,
-      }, {
+      } as any, {
         onConflict: 'user_id,summary_date',
         ignoreDuplicates: false,
       })

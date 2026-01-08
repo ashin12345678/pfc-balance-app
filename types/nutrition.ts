@@ -7,6 +7,25 @@ export interface NutritionValues {
   carb: number
 }
 
+export interface FoodItem {
+  name: string
+  calories: number
+  protein: number
+  fat: number
+  carb: number
+  servingSize?: string
+}
+
+export interface AIAnalysisResult {
+  foods: FoodItem[]
+  totalCalories: number
+  totalProtein: number
+  totalFat: number
+  totalCarb: number
+  confidence: number
+  warnings?: string[]
+}
+
 export interface DailySummary {
   id: string
   userId: string
