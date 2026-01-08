@@ -149,8 +149,20 @@ export default function HomePage() {
 
       {/* フッター */}
       <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>© 2024 PFCバランス管理アプリ. All rights reserved.</p>
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-muted-foreground">
+              © 2026 PFCバランス管理アプリ. All rights reserved.
+            </p>
+            <div className="flex gap-6 text-sm text-muted-foreground">
+              <Link href="/terms" className="hover:text-foreground transition-colors">
+                利用規約
+              </Link>
+              <Link href="/privacy" className="hover:text-foreground transition-colors">
+                プライバシーポリシー
+              </Link>
+            </div>
+          </div>
         </div>
       </footer>
     </div>

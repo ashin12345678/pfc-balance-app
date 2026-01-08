@@ -18,6 +18,7 @@ export default function RegisterPage() {
   const [displayName, setDisplayName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [agreedToTerms, setAgreedToTerms] = useState(false)
   
   const router = useRouter()
   const { toast } = useToast()
@@ -186,9 +187,31 @@ export default function RegisterPage() {
               disabled={isLoading}
             />
           </div>
+
+          {/* 利用規約同意 */}
+          <div className="flex items-start space-x-2">
+            <input
+              type="checkbox"
+              id="terms"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-gray-300"
+              disabled={isLoading}
+            />
+            <label htmlFor="terms" className="text-sm text-muted-foreground">
+              <Link href="/terms" className="text-primary hover:underline" target="_blank">
+                利用規約
+              </Link>
+              と
+              <Link href="/privacy" className="text-primary hover:underline" target="_blank">
+                プライバシーポリシー
+              </Link>
+              に同意する
+            </label>
+          </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading || !agreedToTerms}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             アカウント作成
           </Button>
