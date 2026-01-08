@@ -3,12 +3,22 @@ import OpenAI from 'openai'
 import { MEAL_ANALYSIS_PROMPT } from '@/lib/ai/openai'
 import { parseMealAnalysisResponse } from '@/lib/ai/parsers'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
-
 export async function POST(request: NextRequest) {
   try {
+    const apiKey = process.env.OPENAI_API_KEY
+    
+    if (!apiKey) {
+      console.error('OPENAI_API_KEY is not set')
+      return NextResponse.json(
+        { success: false, error: 'OpenAI APIキーが設定されていません' },
+        { status: 500 }
+      )
+    }
+
+    const openai = new OpenAI({
+      apiKey: apiKey,
+    })
+
     const body = await request.json()
     const { text, mealType } = body
 
@@ -44,12 +54,23 @@ export async function POST(request: NextRequest) {
       success: true,
       data: result,
     })
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('AI analysis error:', error)
+    
+    // OpenAI APIエラーの詳細を取得
+    let errorMessage = '解析に失敗しました'
+    if (error instanceof Error) {
+      errorMessage = error.message
+      // OpenAI SDK特有のエラーの場合
+      if ('status' in error && (error as { status?: number }).status === 401) {
+        errorMessage = 'OpenAI APIキーが無効です。正しいAPIキーを設定してください。'
+      }
+    }
+    
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : '解析に失敗しました',
+        error: errorMessage,
       },
       { status: 500 }
     )

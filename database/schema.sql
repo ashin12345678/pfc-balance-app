@@ -2,8 +2,30 @@
 -- PFCバランス管理アプリ - データベーススキーマ
 -- Supabase (PostgreSQL) 用
 -- ============================================
+-- 使用方法: Supabase Dashboard > SQL Editor で実行
 
+-- ============================================
+-- 0. 既存オブジェクトの削除 (再実行可能にする)
+-- ============================================
+DROP TRIGGER IF EXISTS trigger_update_daily_summary ON meal_logs;
+DROP TRIGGER IF EXISTS trigger_calculate_nutrition_targets ON profiles;
+DROP FUNCTION IF EXISTS update_daily_summary();
+DROP FUNCTION IF EXISTS calculate_nutrition_targets();
+DROP TABLE IF EXISTS food_database CASCADE;
+DROP TABLE IF EXISTS daily_summaries CASCADE;
+DROP TABLE IF EXISTS meal_logs CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+
+-- ============================================
+-- 0.1 未確認ユーザーを確認済みにする
+-- ============================================
+UPDATE auth.users 
+SET email_confirmed_at = NOW() 
+WHERE email_confirmed_at IS NULL;
+
+-- ============================================
 -- 拡張機能の有効化
+-- ============================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
@@ -16,30 +38,33 @@ CREATE TABLE profiles (
     display_name TEXT,
     
     -- 身体情報
-    height_cm DECIMAL(5, 2) NOT NULL DEFAULT 172.0,        -- 身長 (cm)
-    weight_kg DECIMAL(5, 2) NOT NULL DEFAULT 76.0,         -- 体重 (kg)
-    age INTEGER NOT NULL DEFAULT 30,                        -- 年齢
+    birth_date DATE,
+    height_cm DECIMAL(5, 2) NOT NULL DEFAULT 172.0,
+    weight_kg DECIMAL(5, 2) NOT NULL DEFAULT 76.0,
+    target_weight_kg DECIMAL(5, 2),
+    age INTEGER NOT NULL DEFAULT 30,
     gender TEXT NOT NULL DEFAULT 'male' CHECK (gender IN ('male', 'female')),
     
-    -- 活動レベル (1.2: 座りがち, 1.375: 軽い運動, 1.55: 中程度, 1.725: 活発, 1.9: 非常に活発)
-    activity_level DECIMAL(4, 3) NOT NULL DEFAULT 1.55,
+    -- 活動レベル (文字列または数値で保存可能)
+    activity_level TEXT NOT NULL DEFAULT 'moderately_active',
     
     -- 目標設定
+    goal TEXT DEFAULT 'lose' CHECK (goal IN ('lose', 'maintain', 'gain')),
     goal_type TEXT NOT NULL DEFAULT 'diet' CHECK (goal_type IN ('diet', 'maintain', 'bulk')),
-    calorie_adjustment INTEGER NOT NULL DEFAULT -500,       -- カロリー調整値 (減量時はマイナス)
+    calorie_adjustment INTEGER NOT NULL DEFAULT -500,
     
     -- PFC目標比率 (合計100%)
-    target_protein_ratio INTEGER NOT NULL DEFAULT 30,       -- タンパク質比率 %
-    target_fat_ratio INTEGER NOT NULL DEFAULT 25,           -- 脂質比率 %
-    target_carb_ratio INTEGER NOT NULL DEFAULT 45,          -- 炭水化物比率 %
+    target_protein_ratio INTEGER NOT NULL DEFAULT 30,
+    target_fat_ratio INTEGER NOT NULL DEFAULT 25,
+    target_carb_ratio INTEGER NOT NULL DEFAULT 45,
     
     -- 計算値 (トリガーで自動更新)
-    bmr DECIMAL(8, 2),                                      -- 基礎代謝量
-    tdee DECIMAL(8, 2),                                     -- 総消費カロリー
-    target_calories DECIMAL(8, 2),                          -- 目標摂取カロリー
-    target_protein_g DECIMAL(6, 2),                         -- 目標タンパク質 (g)
-    target_fat_g DECIMAL(6, 2),                             -- 目標脂質 (g)
-    target_carb_g DECIMAL(6, 2),                            -- 目標炭水化物 (g)
+    bmr DECIMAL(8, 2),
+    tdee DECIMAL(8, 2),
+    target_calories DECIMAL(8, 2),
+    target_protein_g DECIMAL(6, 2),
+    target_fat_g DECIMAL(6, 2),
+    target_carb_g DECIMAL(6, 2),
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -57,34 +82,28 @@ CREATE TABLE meal_logs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     
-    -- 食事情報
     meal_date DATE NOT NULL DEFAULT CURRENT_DATE,
     meal_type TEXT NOT NULL CHECK (meal_type IN ('breakfast', 'lunch', 'dinner', 'snack')),
     
-    -- 入力データ
     input_type TEXT NOT NULL CHECK (input_type IN ('text', 'barcode', 'manual', 'ocr')),
-    input_text TEXT,                                        -- ユーザー入力テキスト
-    barcode TEXT,                                           -- JANコード
+    input_text TEXT,
+    barcode TEXT,
     
-    -- AI解析結果
-    food_name TEXT NOT NULL,                                -- 料理名/商品名
-    calories DECIMAL(8, 2) NOT NULL DEFAULT 0,              -- カロリー (kcal)
-    protein_g DECIMAL(6, 2) NOT NULL DEFAULT 0,             -- タンパク質 (g)
-    fat_g DECIMAL(6, 2) NOT NULL DEFAULT 0,                 -- 脂質 (g)
-    carb_g DECIMAL(6, 2) NOT NULL DEFAULT 0,                -- 炭水化物 (g)
+    food_name TEXT NOT NULL,
+    calories DECIMAL(8, 2) NOT NULL DEFAULT 0,
+    protein_g DECIMAL(6, 2) NOT NULL DEFAULT 0,
+    fat_g DECIMAL(6, 2) NOT NULL DEFAULT 0,
+    carb_g DECIMAL(6, 2) NOT NULL DEFAULT 0,
     
-    -- 詳細情報 (オプション)
-    fiber_g DECIMAL(6, 2),                                  -- 食物繊維 (g)
-    sodium_mg DECIMAL(8, 2),                                -- ナトリウム (mg)
-    serving_size TEXT,                                      -- 1食分の量
+    fiber_g DECIMAL(6, 2),
+    sodium_mg DECIMAL(8, 2),
+    serving_size TEXT,
     
-    -- AI解析生データ (JSON)
-    ai_response JSONB,                                      -- AIからの完全なレスポンス
-    confidence_score DECIMAL(3, 2),                         -- 解析信頼度 (0.00-1.00)
+    ai_response JSONB,
+    confidence_score DECIMAL(3, 2),
     
-    -- メタデータ
-    notes TEXT,                                             -- ユーザーメモ
-    image_url TEXT,                                         -- 食事画像URL (オプション)
+    notes TEXT,
+    image_url TEXT,
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -99,28 +118,23 @@ CREATE TABLE daily_summaries (
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     summary_date DATE NOT NULL,
     
-    -- 合計摂取量
     total_calories DECIMAL(8, 2) NOT NULL DEFAULT 0,
     total_protein_g DECIMAL(6, 2) NOT NULL DEFAULT 0,
     total_fat_g DECIMAL(6, 2) NOT NULL DEFAULT 0,
     total_carb_g DECIMAL(6, 2) NOT NULL DEFAULT 0,
     
-    -- 目標達成率 (%)
     calorie_achievement DECIMAL(5, 2),
     protein_achievement DECIMAL(5, 2),
     fat_achievement DECIMAL(5, 2),
     carb_achievement DECIMAL(5, 2),
     
-    -- その日の目標値 (スナップショット)
     target_calories DECIMAL(8, 2),
     target_protein_g DECIMAL(6, 2),
     target_fat_g DECIMAL(6, 2),
     target_carb_g DECIMAL(6, 2),
     
-    -- AIアドバイス
-    ai_advice JSONB,                                        -- 不足栄養素に基づくアドバイス
-    
-    meal_count INTEGER NOT NULL DEFAULT 0,                  -- 食事回数
+    ai_advice JSONB,
+    meal_count INTEGER NOT NULL DEFAULT 0,
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -129,28 +143,24 @@ CREATE TABLE daily_summaries (
 );
 
 -- ============================================
--- 4. food_database テーブル (オプション)
+-- 4. food_database テーブル
 -- よく使う食品のローカルキャッシュ
 -- ============================================
 CREATE TABLE food_database (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     
-    -- 食品識別
     barcode TEXT UNIQUE,
     food_name TEXT NOT NULL,
     brand TEXT,
     category TEXT,
     
-    -- 栄養情報 (100gあたり)
     calories_per_100g DECIMAL(8, 2),
     protein_per_100g DECIMAL(6, 2),
     fat_per_100g DECIMAL(6, 2),
     carb_per_100g DECIMAL(6, 2),
     
-    -- 1食あたりの標準量
     default_serving_g DECIMAL(6, 2),
     
-    -- データソース
     source TEXT CHECK (source IN ('open_food_facts', 'ai_estimated', 'user_input')),
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -164,7 +174,6 @@ CREATE INDEX idx_meal_logs_user_date ON meal_logs(user_id, meal_date);
 CREATE INDEX idx_meal_logs_barcode ON meal_logs(barcode) WHERE barcode IS NOT NULL;
 CREATE INDEX idx_daily_summaries_user_date ON daily_summaries(user_id, summary_date);
 CREATE INDEX idx_food_database_barcode ON food_database(barcode) WHERE barcode IS NOT NULL;
-CREATE INDEX idx_food_database_name ON food_database USING gin(to_tsvector('simple', food_name));
 
 -- ============================================
 -- 関数: BMRと目標値の自動計算
@@ -174,6 +183,7 @@ CREATE OR REPLACE FUNCTION calculate_nutrition_targets()
 RETURNS TRIGGER AS $$
 DECLARE
     gender_modifier INTEGER;
+    activity_multiplier DECIMAL(4, 3);
 BEGIN
     -- 性別による補正値
     IF NEW.gender = 'male' THEN
@@ -182,17 +192,25 @@ BEGIN
         gender_modifier := -161;
     END IF;
     
+    -- 活動レベルの変換
+    CASE NEW.activity_level
+        WHEN 'sedentary' THEN activity_multiplier := 1.2;
+        WHEN 'lightly_active' THEN activity_multiplier := 1.375;
+        WHEN 'moderately_active' THEN activity_multiplier := 1.55;
+        WHEN 'very_active' THEN activity_multiplier := 1.725;
+        ELSE activity_multiplier := 1.55;
+    END CASE;
+    
     -- BMR計算 (Mifflin-St Jeor式)
     NEW.bmr := (10 * NEW.weight_kg) + (6.25 * NEW.height_cm) - (5 * NEW.age) + gender_modifier;
     
     -- TDEE計算 (Total Daily Energy Expenditure)
-    NEW.tdee := NEW.bmr * NEW.activity_level;
+    NEW.tdee := NEW.bmr * activity_multiplier;
     
     -- 目標カロリー
     NEW.target_calories := NEW.tdee + NEW.calorie_adjustment;
     
     -- 目標PFC (g) を計算
-    -- タンパク質: 1g = 4kcal, 脂質: 1g = 9kcal, 炭水化物: 1g = 4kcal
     NEW.target_protein_g := (NEW.target_calories * NEW.target_protein_ratio / 100) / 4;
     NEW.target_fat_g := (NEW.target_calories * NEW.target_fat_ratio / 100) / 9;
     NEW.target_carb_g := (NEW.target_calories * NEW.target_carb_ratio / 100) / 4;
@@ -203,9 +221,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ============================================
--- トリガー: profiles更新時に自動計算
--- ============================================
 CREATE TRIGGER trigger_calculate_nutrition_targets
     BEFORE INSERT OR UPDATE ON profiles
     FOR EACH ROW
@@ -219,25 +234,15 @@ RETURNS TRIGGER AS $$
 DECLARE
     target_record RECORD;
 BEGIN
-    -- ユーザーの目標値を取得
     SELECT target_calories, target_protein_g, target_fat_g, target_carb_g
     INTO target_record
     FROM profiles
     WHERE id = COALESCE(NEW.user_id, OLD.user_id);
     
-    -- daily_summaries を更新または作成
     INSERT INTO daily_summaries (
-        user_id,
-        summary_date,
-        total_calories,
-        total_protein_g,
-        total_fat_g,
-        total_carb_g,
-        target_calories,
-        target_protein_g,
-        target_fat_g,
-        target_carb_g,
-        meal_count
+        user_id, summary_date, total_calories, total_protein_g,
+        total_fat_g, total_carb_g, target_calories, target_protein_g,
+        target_fat_g, target_carb_g, meal_count
     )
     SELECT
         COALESCE(NEW.user_id, OLD.user_id),
@@ -288,9 +293,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ============================================
--- トリガー: meal_logs変更時にdaily_summariesを更新
--- ============================================
 CREATE TRIGGER trigger_update_daily_summary
     AFTER INSERT OR UPDATE OR DELETE ON meal_logs
     FOR EACH ROW
@@ -339,6 +341,14 @@ CREATE POLICY "Users can view own daily summaries"
     ON daily_summaries FOR SELECT
     USING (auth.uid() = user_id);
 
+CREATE POLICY "Users can insert own daily summaries"
+    ON daily_summaries FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own daily summaries"
+    ON daily_summaries FOR UPDATE
+    USING (auth.uid() = user_id);
+
 -- food_database ポリシー (全ユーザー閲覧可能)
 CREATE POLICY "Anyone can view food database"
     ON food_database FOR SELECT
@@ -346,8 +356,27 @@ CREATE POLICY "Anyone can view food database"
     USING (true);
 
 -- ============================================
--- 初期データ: 塚田さんのプロフィール (サンプル)
--- 実際にはauth.usersのIDを使用
+-- 既存ユーザーのプロフィール自動作成
 -- ============================================
--- INSERT INTO profiles (id, display_name, height_cm, weight_kg, age, gender, goal_type)
--- VALUES ('your-user-uuid', '塚田', 172.0, 76.0, 30, 'male', 'diet');
+INSERT INTO profiles (id, email, display_name, height_cm, weight_kg, age, gender, goal_type)
+SELECT 
+    id, 
+    email, 
+    COALESCE(raw_user_meta_data->>'display_name', '名前未設定'),
+    172.0,
+    76.0,
+    30,
+    'male',
+    'diet'
+FROM auth.users
+WHERE id NOT IN (SELECT id FROM profiles)
+ON CONFLICT (id) DO NOTHING;
+
+-- ============================================
+-- 完了メッセージ
+-- ============================================
+DO $$
+BEGIN
+    RAISE NOTICE 'スキーマの作成が完了しました！';
+    RAISE NOTICE '既存ユーザーのプロフィールも作成されました。';
+END $$;
