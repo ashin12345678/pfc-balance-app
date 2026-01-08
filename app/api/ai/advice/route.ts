@@ -1,14 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
-import { ADVICE_PROMPT } from '@/lib/ai/openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
+import { ADVICE_PROMPT } from '@/lib/ai/prompts'
 import { parseAdviceResponse } from '@/lib/ai/parsers'
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
 
 export async function POST(request: NextRequest) {
   try {
+    const apiKey = process.env.GEMINI_API_KEY
+    
+    if (!apiKey) {
+      console.error('GEMINI_API_KEY is not set')
+      return NextResponse.json(
+        { success: false, error: 'Gemini APIキーが設定されていません' },
+        { status: 500 }
+      )
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey)
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+
     const body = await request.json()
     const {
       currentCalories,
@@ -33,30 +42,28 @@ export async function POST(request: NextRequest) {
 目標: ${goal === 'lose' ? '減量' : goal === 'gain' ? '増量' : '維持'}
 
 最近の食事:
-${recentMeals?.map((m: any) => `- ${m.name}: ${m.calories}kcal`).join('\n') || 'なし'}
+${recentMeals?.map((m: { name: string; calories: number }) => `- ${m.name}: ${m.calories}kcal`).join('\n') || 'なし'}
 `
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: ADVICE_PROMPT },
-        { role: 'user', content: userMessage },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.7,
-      max_tokens: 800,
-    })
+    const prompt = `${ADVICE_PROMPT}
 
-    const content = response.choices[0]?.message?.content
+${userMessage}
+
+上記の情報を元にアドバイスをJSON形式で返してください。`
+
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const content = response.text()
+
     if (!content) {
       throw new Error('AI応答が空です')
     }
 
-    const result = parseAdviceResponse(content)
+    const parsedResult = parseAdviceResponse(content)
 
     return NextResponse.json({
       success: true,
-      data: result,
+      data: parsedResult,
     })
   } catch (error) {
     console.error('AI advice error:', error)
