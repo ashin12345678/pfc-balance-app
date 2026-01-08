@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenAI } from '@google/genai'
 import { ADVICE_PROMPT } from '@/lib/ai/prompts'
 import { parseAdviceResponse } from '@/lib/ai/parsers'
 
@@ -15,8 +15,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'models/gemini-1.5-flash' })
+    const ai = new GoogleGenAI({ apiKey })
 
     const body = await request.json()
     const {
@@ -51,10 +50,12 @@ ${userMessage}
 
 上記の情報を元にアドバイスをJSON形式で返してください。`
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const content = response.text()
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+    })
 
+    const content = response.text
     if (!content) {
       throw new Error('AI応答が空です')
     }
