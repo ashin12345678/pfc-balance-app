@@ -72,12 +72,12 @@ export default function RegisterPage() {
         const profileData = {
           id: data.user.id,
           email: email,
-          display_name: displayName || '塚田',
-          height_cm: 172,
-          weight_kg: 76,
-          age: 30,
+          display_name: displayName || 'ユーザー',
+          height_cm: 170,
+          weight_kg: 60,
+          age: 25,
           gender: 'male' as const,
-          goal_type: 'diet' as const,
+          goal_type: 'maintain' as const,
         }
         const { error: profileError } = await supabase
           .from('profiles')
@@ -123,7 +123,7 @@ export default function RegisterPage() {
             <Input
               id="displayName"
               type="text"
-              placeholder="塚田"
+              placeholder="山田 太郎"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               disabled={isLoading}

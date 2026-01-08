@@ -39,19 +39,19 @@ CREATE TABLE profiles (
     
     -- 身体情報
     birth_date DATE,
-    height_cm DECIMAL(5, 2) NOT NULL DEFAULT 172.0,
-    weight_kg DECIMAL(5, 2) NOT NULL DEFAULT 76.0,
+    height_cm DECIMAL(5, 2) NOT NULL DEFAULT 170.0,
+    weight_kg DECIMAL(5, 2) NOT NULL DEFAULT 60.0,
     target_weight_kg DECIMAL(5, 2),
-    age INTEGER NOT NULL DEFAULT 30,
+    age INTEGER NOT NULL DEFAULT 25,
     gender TEXT NOT NULL DEFAULT 'male' CHECK (gender IN ('male', 'female')),
     
     -- 活動レベル (文字列または数値で保存可能)
     activity_level TEXT NOT NULL DEFAULT 'moderately_active',
     
     -- 目標設定
-    goal TEXT DEFAULT 'lose' CHECK (goal IN ('lose', 'maintain', 'gain')),
-    goal_type TEXT NOT NULL DEFAULT 'diet' CHECK (goal_type IN ('diet', 'maintain', 'bulk')),
-    calorie_adjustment INTEGER NOT NULL DEFAULT -500,
+    goal TEXT DEFAULT 'maintain' CHECK (goal IN ('lose', 'maintain', 'gain')),
+    goal_type TEXT NOT NULL DEFAULT 'maintain' CHECK (goal_type IN ('diet', 'maintain', 'bulk')),
+    calorie_adjustment INTEGER NOT NULL DEFAULT 0,
     
     -- PFC目標比率 (合計100%)
     target_protein_ratio INTEGER NOT NULL DEFAULT 30,
@@ -363,11 +363,11 @@ SELECT
     id, 
     email, 
     COALESCE(raw_user_meta_data->>'display_name', '名前未設定'),
-    172.0,
-    76.0,
-    30,
+    170.0,
+    60.0,
+    25,
     'male',
-    'diet'
+    'maintain'
 FROM auth.users
 WHERE id NOT IN (SELECT id FROM profiles)
 ON CONFLICT (id) DO NOTHING;
