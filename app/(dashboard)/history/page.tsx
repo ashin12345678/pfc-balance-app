@@ -2,8 +2,10 @@ import { Header } from '@/components/layout/Header'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { WeeklyTrendChart } from '@/components/features/charts/WeeklyTrendChart'
 import { CalorieGauge } from '@/components/features/charts/CalorieGauge'
+import { HistoryClient } from '@/components/features/history/HistoryClient'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { toDateString, formatDate, getPastDates } from '@/lib/utils/date'
+import type { MealType } from '@/types/meal'
 
 export default async function HistoryPage() {
   const supabase = await createServerSupabaseClient()
@@ -17,8 +19,8 @@ export default async function HistoryPage() {
     .eq('id', user?.id || '')
     .single() as { data: any }
 
-  // 過去14日間のサマリー取得
-  const pastDates = getPastDates(14)
+  // 過去30日間のサマリー取得（より多くの日数を表示）
+  const pastDates = getPastDates(30)
   const startDate = formatDate(pastDates[0], 'yyyy-MM-dd')
 
   const { data: summaries } = await supabase
@@ -27,15 +29,25 @@ export default async function HistoryPage() {
     .eq('user_id', user?.id || '')
     .gte('summary_date', startDate)
     .lte('summary_date', today)
-    .order('summary_date', { ascending: true }) as { data: any[] | null }
+    .order('summary_date', { ascending: false }) as { data: any[] | null }
+
+  // 過去30日間の食事記録も取得
+  const { data: meals } = await supabase
+    .from('meal_logs')
+    .select('*')
+    .eq('user_id', user?.id || '')
+    .gte('meal_date', startDate)
+    .lte('meal_date', today)
+    .order('meal_date', { ascending: false })
+    .order('created_at', { ascending: true }) as { data: any[] | null }
 
   const targetCalories = profile?.target_calories || 1800
   const targetProtein = profile?.target_protein_g || 135
   const targetFat = profile?.target_fat_g || 50
   const targetCarb = profile?.target_carb_g || 202
 
-  // 過去7日間の平均
-  const last7Days = (summaries || []).slice(-7)
+  // 過去7日間の平均（降順で取得しているのでslice(0, 7)）
+  const last7Days = (summaries || []).slice(0, 7)
   const avgCalories = last7Days.length > 0
     ? last7Days.reduce((sum: number, s: any) => sum + s.total_calories, 0) / last7Days.length
     : 0
@@ -49,8 +61,8 @@ export default async function HistoryPage() {
     ? last7Days.reduce((sum: number, s: any) => sum + s.total_carb_g, 0) / last7Days.length
     : 0
 
-  // チャート用データ
-  const trendData = (summaries || []).slice(-7).map((s: any) => ({
+  // チャート用データ（昇順に変換）
+  const trendData = (summaries || []).slice(0, 7).reverse().map((s: any) => ({
     label: s.summary_date,
     date: s.summary_date,
     calories: s.total_calories,
@@ -58,6 +70,39 @@ export default async function HistoryPage() {
     fat: s.total_fat_g,
     carb: s.total_carb_g,
   }))
+
+  // 日付別に食事をグループ化してサマリーデータを作成
+  const mealsByDate = (meals || []).reduce((acc: Record<string, any[]>, meal: any) => {
+    const date = meal.meal_date
+    if (!acc[date]) {
+      acc[date] = []
+    }
+    acc[date].push({
+      id: meal.id,
+      foodName: meal.food_name,
+      mealType: meal.meal_type as MealType,
+      calories: meal.calories,
+      protein: meal.protein_g,
+      fat: meal.fat_g,
+      carb: meal.carb_g,
+      createdAt: meal.created_at,
+    })
+    return acc
+  }, {} as Record<string, any[]>)
+
+  // HistoryClient用のデータ形式に変換
+  const historySummaries = Object.entries(mealsByDate)
+    .map(([date, dateMeals]) => ({
+      id: date,
+      date,
+      totalCalories: (dateMeals as any[]).reduce((sum, m) => sum + m.calories, 0),
+      totalProtein: (dateMeals as any[]).reduce((sum, m) => sum + m.protein, 0),
+      totalFat: (dateMeals as any[]).reduce((sum, m) => sum + m.fat, 0),
+      totalCarb: (dateMeals as any[]).reduce((sum, m) => sum + m.carb, 0),
+      mealCount: (dateMeals as any[]).length,
+      meals: dateMeals as any[],
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date))
 
   return (
     <div className="min-h-screen">
@@ -140,65 +185,11 @@ export default async function HistoryPage() {
           />
         </div>
 
-        {/* 日別詳細 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>日別記録</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2 px-3">日付</th>
-                    <th className="text-right py-2 px-3">カロリー</th>
-                    <th className="text-right py-2 px-3">P</th>
-                    <th className="text-right py-2 px-3">F</th>
-                    <th className="text-right py-2 px-3">C</th>
-                    <th className="text-right py-2 px-3">達成率</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(summaries || []).slice().reverse().map((summary) => {
-                    const achievement = (summary.total_calories / targetCalories) * 100
-                    return (
-                      <tr key={summary.id} className="border-b">
-                        <td className="py-2 px-3">
-                          {formatDate(summary.summary_date, 'M/d(E)')}
-                        </td>
-                        <td className="text-right py-2 px-3">
-                          {summary.total_calories.toFixed(0)} kcal
-                        </td>
-                        <td className="text-right py-2 px-3 text-red-500">
-                          {summary.total_protein_g.toFixed(1)}g
-                        </td>
-                        <td className="text-right py-2 px-3 text-amber-500">
-                          {summary.total_fat_g.toFixed(1)}g
-                        </td>
-                        <td className="text-right py-2 px-3 text-blue-500">
-                          {summary.total_carb_g.toFixed(1)}g
-                        </td>
-                        <td className="text-right py-2 px-3">
-                          <span
-                            className={
-                              achievement >= 90 && achievement <= 110
-                                ? 'text-green-500'
-                                : achievement < 70
-                                ? 'text-red-500'
-                                : 'text-amber-500'
-                            }
-                          >
-                            {achievement.toFixed(0)}%
-                          </span>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+        {/* 日別詳細（編集・削除可能） */}
+        <div>
+          <h2 className="text-lg font-semibold mb-4">日別記録（クリックで展開・編集）</h2>
+          <HistoryClient summaries={historySummaries} targetCalories={targetCalories} />
+        </div>
       </div>
     </div>
   )

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/components/layout/Header'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,7 +15,18 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Loader2, Save, LogOut } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Loader2, Save, LogOut, Trash2, AlertTriangle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/useToast'
 import { calculateAge } from '@/lib/utils/date'
@@ -27,6 +38,9 @@ type Goal = 'lose' | 'maintain' | 'gain'
 export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState('')
   const [profile, setProfile] = useState<Partial<Profile>>({})
 
   const router = useRouter()
@@ -112,6 +126,47 @@ export default function ProfilePage() {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
+  }
+
+  const handleDeleteAllRecords = async () => {
+    if (deleteConfirmText !== '削除する') {
+      toast({
+        variant: 'destructive',
+        title: 'エラー',
+        description: '確認テキストが一致しません',
+      })
+      return
+    }
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch('/api/meals?all=true', {
+        method: 'DELETE',
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error)
+      }
+
+      toast({
+        title: '削除完了',
+        description: 'すべての食事記録を削除しました',
+      })
+
+      setShowDeleteDialog(false)
+      setDeleteConfirmText('')
+      router.refresh()
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'エラー',
+        description: error instanceof Error ? error.message : '削除に失敗しました',
+      })
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   if (isLoading) {
@@ -320,6 +375,76 @@ export default function ProfilePage() {
             保存する
           </Button>
         </div>
+
+        <Separator />
+
+        {/* データ管理 */}
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="text-destructive flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              データ管理
+            </CardTitle>
+            <CardDescription>
+              すべての食事記録を削除します。この操作は取り消せません。
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="w-full">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  すべての記録を削除
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                    <AlertTriangle className="h-5 w-5" />
+                    本当にすべての記録を削除しますか？
+                  </AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3">
+                    <p>
+                      この操作を実行すると、すべての食事記録と日別サマリーが完全に削除されます。
+                      この操作は取り消せません。
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmText">
+                        確認のため「削除する」と入力してください
+                      </Label>
+                      <Input
+                        id="confirmText"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="削除する"
+                      />
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel
+                    disabled={isDeleting}
+                    onClick={() => setDeleteConfirmText('')}
+                  >
+                    キャンセル
+                  </AlertDialogCancel>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteAllRecords}
+                    disabled={isDeleting || deleteConfirmText !== '削除する'}
+                  >
+                    {isDeleting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
+                    完全に削除
+                  </Button>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
 
         <Separator />
 

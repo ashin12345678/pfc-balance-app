@@ -145,7 +145,30 @@ export async function DELETE(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
+    const deleteAll = searchParams.get('all') === 'true'
 
+    // 全削除の場合
+    if (deleteAll) {
+      const { error } = await supabase
+        .from('meal_logs')
+        .delete()
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      // daily_summariesも全削除
+      await supabase
+        .from('daily_summaries')
+        .delete()
+        .eq('user_id', user.id)
+
+      return NextResponse.json({
+        success: true,
+        message: 'すべての記録を削除しました',
+      })
+    }
+
+    // 個別削除の場合
     if (!id) {
       return NextResponse.json(
         { success: false, error: 'IDが指定されていません' },
