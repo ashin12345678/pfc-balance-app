@@ -30,7 +30,15 @@ export function CalorieGauge({ current, target, size = 'md' }: CalorieGaugeProps
   return (
     <div className={cn('relative', sizeConfig.container)}>
       {/* 背景円 */}
-      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+      <svg 
+        className="w-full h-full transform -rotate-90" 
+        viewBox="0 0 100 100"
+        role="progressbar"
+        aria-valuenow={Math.round(percentage)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={`カロリー達成率 ${Math.round(percentage)}%、${isOver ? '目標を超過' : `残り${remaining.toFixed(0)}kcal`}`}
+      >
         {/* 背景トラック */}
         <circle
           cx="50"

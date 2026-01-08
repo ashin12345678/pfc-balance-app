@@ -190,6 +190,8 @@ export default function ProfilePage() {
                 <Input
                   id="height"
                   type="number"
+                  min={100}
+                  max={250}
                   value={profile.height_cm || ''}
                   onChange={(e) =>
                     setProfile({ ...profile, height_cm: Number(e.target.value) })
@@ -203,6 +205,8 @@ export default function ProfilePage() {
                   id="weight"
                   type="number"
                   step="0.1"
+                  min={20}
+                  max={300}
                   value={profile.weight_kg || ''}
                   onChange={(e) =>
                     setProfile({ ...profile, weight_kg: Number(e.target.value) })
@@ -216,6 +220,8 @@ export default function ProfilePage() {
                   id="targetWeight"
                   type="number"
                   step="0.1"
+                  min={20}
+                  max={300}
                   value={profile.target_weight_kg || ''}
                   onChange={(e) =>
                     setProfile({

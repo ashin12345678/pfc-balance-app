@@ -48,7 +48,7 @@ interface MealsClientProps {
 export function MealsClient({ initialMealsByDate, initialDates }: MealsClientProps) {
   const [mealsByDate, setMealsByDate] = useState<MealsByDate>(initialMealsByDate)
   const [dates, setDates] = useState<string[]>(initialDates)
-  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editValues, setEditValues] = useState<{
     foodName: string
@@ -63,11 +63,11 @@ export function MealsClient({ initialMealsByDate, initialDates }: MealsClientPro
   const { toast } = useToast()
 
   const handleDelete = async () => {
-    if (!deleteId) return
+    if (!deleteTarget) return
     
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/meals?id=${deleteId}`, {
+      const response = await fetch(`/api/meals?id=${deleteTarget.id}`, {
         method: 'DELETE',
       })
       
@@ -80,7 +80,7 @@ export function MealsClient({ initialMealsByDate, initialDates }: MealsClientPro
       // ローカルステートを更新
       const newMealsByDate = { ...mealsByDate }
       for (const date in newMealsByDate) {
-        newMealsByDate[date] = newMealsByDate[date].filter(m => m.id !== deleteId)
+        newMealsByDate[date] = newMealsByDate[date].filter(m => m.id !== deleteTarget.id)
         if (newMealsByDate[date].length === 0) {
           delete newMealsByDate[date]
         }
@@ -100,7 +100,7 @@ export function MealsClient({ initialMealsByDate, initialDates }: MealsClientPro
       })
     } finally {
       setIsLoading(false)
-      setDeleteId(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -329,6 +329,7 @@ export function MealsClient({ initialMealsByDate, initialDates }: MealsClientPro
                                         size="icon"
                                         className="h-8 w-8"
                                         onClick={() => handleEditStart(meal)}
+                                        aria-label={`${meal.foodName}を編集`}
                                       >
                                         <Edit className="h-4 w-4" />
                                       </Button>
@@ -336,7 +337,8 @@ export function MealsClient({ initialMealsByDate, initialDates }: MealsClientPro
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8 text-destructive hover:text-destructive"
-                                        onClick={() => setDeleteId(meal.id)}
+                                        onClick={() => setDeleteTarget({ id: meal.id, name: meal.foodName })}
+                                        aria-label={`${meal.foodName}を削除`}
                                       >
                                         <Trash2 className="h-4 w-4" />
                                       </Button>
@@ -369,10 +371,10 @@ export function MealsClient({ initialMealsByDate, initialDates }: MealsClientPro
       )}
 
       {/* 削除確認ダイアログ */}
-      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>食事記録を削除しますか？</AlertDialogTitle>
+            <AlertDialogTitle>「{deleteTarget?.name}」を削除しますか？</AlertDialogTitle>
             <AlertDialogDescription>
               この操作は取り消せません。本当に削除しますか？
             </AlertDialogDescription>

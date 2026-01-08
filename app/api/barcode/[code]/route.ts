@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { fetchProductByBarcode } from '@/lib/api/openFoodFacts'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { code: string } }
 ) {
   try {
+    // 認証チェック
+    const supabase = createServerSupabaseClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: '認証が必要です' },
+        { status: 401 }
+      )
+    }
+
     const { code } = params
 
     if (!code) {
