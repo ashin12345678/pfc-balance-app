@@ -9,8 +9,8 @@ export function isDemoMode() {
     process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co')
 }
 
-export function createServerSupabaseClient() {
-  const cookieStore = cookies()
+export async function createServerSupabaseClient() {
+  const cookieStore = await cookies()
 
   // ダミー環境の場合はダミーのURLとキーを使用
   const url = isDemoMode() ? 'https://placeholder.supabase.co' : process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -46,7 +46,7 @@ export function createServerSupabaseClient() {
 export async function getSession() {
   if (isDemoMode()) return null
   
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   try {
     const {
       data: { session },
@@ -61,7 +61,7 @@ export async function getSession() {
 export async function getUser() {
   if (isDemoMode()) return null
   
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   try {
     const {
       data: { user },

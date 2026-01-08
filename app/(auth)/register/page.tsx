@@ -36,11 +36,21 @@ export default function RegisterPage() {
       return
     }
 
-    if (password.length < 6) {
+    // パスワードポリシーの強化
+    if (password.length < 8) {
       toast({
         variant: 'destructive',
         title: 'エラー',
-        description: 'パスワードは6文字以上で入力してください',
+        description: 'パスワードは8文字以上で入力してください',
+      })
+      return
+    }
+
+    if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) {
+      toast({
+        variant: 'destructive',
+        title: 'エラー',
+        description: 'パスワードは英字と数字を両方含めてください',
       })
       return
     }

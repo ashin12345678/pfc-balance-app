@@ -6,7 +6,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 import { toDateString, formatDate, getPastDates } from '@/lib/utils/date'
 
 export default async function HistoryPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   const today = toDateString()
 

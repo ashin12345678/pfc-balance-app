@@ -2,11 +2,20 @@ import type { OpenFoodFactsResponse, OpenFoodFactsProduct } from '@/types/api'
 
 const OPEN_FOOD_FACTS_API = 'https://world.openfoodfacts.org/api/v2/product'
 
+// バーコード形式の検証（8-14桁の数字）
+const BARCODE_REGEX = /^[0-9]{8,14}$/
+
 /**
  * Open Food Facts APIからバーコードで商品情報を取得
  */
 export async function getProductByBarcode(barcode: string): Promise<OpenFoodFactsProduct | null> {
   try {
+    // バーコード形式の検証（SSRF防止）
+    if (!BARCODE_REGEX.test(barcode)) {
+      console.error('Invalid barcode format:', barcode)
+      return null
+    }
+
     const response = await fetch(`${OPEN_FOOD_FACTS_API}/${barcode}.json`, {
       headers: {
         'User-Agent': 'PFCBalanceApp/1.0',

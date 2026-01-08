@@ -7,7 +7,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 export async function POST(request: NextRequest) {
   try {
     // 認証チェック
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
@@ -39,12 +39,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // 入力のサニタイズ（プロンプトインジェクション対策）
+    const sanitizedText = String(text)
+      .slice(0, 500)  // 最大2500文字
+      .replace(/[{}\[\]]/g, '')  // JSON構造文字を除去
+    const sanitizedMealType = ['breakfast', 'lunch', 'dinner', 'snack'].includes(mealType) 
+      ? mealType 
+      : '不明'
+
     const prompt = `${MEAL_ANALYSIS_PROMPT}
 
-食事タイプ: ${mealType || '不明'}
-食事内容: ${text}
+<user_input>
+食事タイプ: ${sanitizedMealType}
+食事内容: ${sanitizedText}
+</user_input>
 
-上記の食事内容を解析し、JSONのみを返してください。`
+上記のuser_input内の食事内容のみを解析し、JSONのみを返してください。`
 
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',

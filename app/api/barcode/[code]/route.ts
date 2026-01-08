@@ -4,11 +4,11 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
   try {
     // 認証チェック
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
@@ -18,7 +18,7 @@ export async function GET(
       )
     }
 
-    const { code } = params
+    const { code } = await params
 
     if (!code) {
       return NextResponse.json(

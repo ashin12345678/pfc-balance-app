@@ -4,7 +4,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 // GET: 食事記録の取得
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -32,9 +32,14 @@ export async function GET(request: NextRequest) {
       query = query.gte('meal_date', startDate).lte('meal_date', endDate)
     }
 
-    if (limit) {
-      query = query.limit(parseInt(limit, 10))
-    }
+    // limitのバリデーション（最大100件）
+    const MAX_LIMIT = 100
+    const DEFAULT_LIMIT = 50
+    const parsedLimit = parseInt(limit || String(DEFAULT_LIMIT), 10)
+    const safeLimit = Number.isNaN(parsedLimit) 
+      ? DEFAULT_LIMIT 
+      : Math.min(Math.max(parsedLimit, 1), MAX_LIMIT)
+    query = query.limit(safeLimit)
 
     const { data, error } = await query
 
@@ -59,7 +64,7 @@ export async function GET(request: NextRequest) {
 // POST: 食事記録の作成
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -128,7 +133,7 @@ export async function POST(request: NextRequest) {
 // DELETE: 食事記録の削除
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
@@ -174,7 +179,7 @@ export async function DELETE(request: NextRequest) {
 // PATCH: 食事記録の更新
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = createServerSupabaseClient()
+    const supabase = await createServerSupabaseClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {

@@ -5,7 +5,7 @@ import { toDateString, formatDate, getPastDates } from '@/lib/utils/date'
 import type { MealType } from '@/types/meal'
 
 export default async function MealsPage() {
-  const supabase = createServerSupabaseClient()
+  const supabase = await createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   const today = toDateString()
 

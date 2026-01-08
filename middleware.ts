@@ -5,10 +5,13 @@ import { createServerClient } from '@supabase/ssr'
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // 環境変数が設定されていない場合はスキップ（開発用）
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-      process.env.NEXT_PUBLIC_SUPABASE_URL.includes('example.supabase.co')) {
-    return NextResponse.next()
+  // 環境変数が設定されていない場合はエラーを返す
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error('Supabase environment variables are not configured')
+    return NextResponse.json(
+      { error: 'Server configuration error' },
+      { status: 500 }
+    )
   }
 
   // セッション更新
