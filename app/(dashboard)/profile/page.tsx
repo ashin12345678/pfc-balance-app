@@ -18,6 +18,7 @@ import { Separator } from '@/components/ui/separator'
 import { Loader2, Save, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/useToast'
+import { calculateAge } from '@/lib/utils/date'
 import type { Profile } from '@/types/database'
 
 type ActivityLevel = 'sedentary' | 'lightly_active' | 'moderately_active' | 'very_active'
@@ -69,12 +70,16 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('ログインが必要です')
 
+      // 生年月日から年齢を自動計算
+      const calculatedAge = calculateAge(profile.birth_date)
+
       const { error } = await (supabase
         .from('profiles') as any)
         .update({
           display_name: profile.display_name,
           gender: profile.gender,
           birth_date: profile.birth_date,
+          age: calculatedAge,
           height_cm: profile.height_cm,
           weight_kg: profile.weight_kg,
           target_weight_kg: profile.target_weight_kg,

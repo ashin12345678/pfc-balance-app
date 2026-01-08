@@ -76,3 +76,25 @@ export function getDayOfWeek(date: Date | string): string {
   const d = typeof date === 'string' ? parseISO(date) : date
   return format(d, 'E', { locale: ja })
 }
+
+/**
+ * 生年月日から年齢を計算
+ * @param birthDate 生年月日（YYYY-MM-DD形式）
+ * @returns 年齢（満年齢）
+ */
+export function calculateAge(birthDate: string | null | undefined): number | null {
+  if (!birthDate) return null
+  
+  const birth = parseISO(birthDate)
+  const today = new Date()
+  
+  let age = today.getFullYear() - birth.getFullYear()
+  const monthDiff = today.getMonth() - birth.getMonth()
+  
+  // 誕生日がまだ来ていない場合は1歳引く
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+  
+  return age
+}
