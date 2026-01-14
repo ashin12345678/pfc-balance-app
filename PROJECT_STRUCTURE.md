@@ -1,4 +1,4 @@
-# PFCバランス管理アプリ - プロジェクト構造
+# PFC バランス管理アプリ - プロジェクト構造
 
 ```
 pfc-balance-app/
@@ -114,13 +114,9 @@ pfc-balance-app/
 │       └── profile.ts                   # プロフィールバリデーション
 │
 ├── 📁 hooks/                            # カスタムフック
-│   ├── useAuth.ts                       # 認証フック
-│   ├── useMeals.ts                      # 食事データフック
-│   ├── useDailySummary.ts               # 日次サマリーフック
-│   ├── useBarcode.ts                    # バーコードスキャンフック
-│   └── useAIAnalysis.ts                 # AI解析フック
+│   └── use-toast.ts                     # トースト通知フック
 │
-├── 📁 stores/                           # 状態管理（Zustand推奨）
+├── 📁 store/                            # 状態管理（Zustand）
 │   ├── useUserStore.ts                  # ユーザー状態
 │   └── useMealStore.ts                  # 食事入力一時状態
 │
@@ -153,29 +149,35 @@ pfc-balance-app/
 ## 📋 ディレクトリ説明
 
 ### `/app` - Next.js App Router
+
 - **(auth)**: ログイン・登録などの認証フロー
 - **(dashboard)**: メインアプリケーション機能
-- **api**: サーバーサイドAPIエンドポイント
+- **api**: サーバーサイド API エンドポイント
 
-### `/components` - UIコンポーネント
-- **ui**: Shadcn UIのベースコンポーネント（再利用可能）
+### `/components` - UI コンポーネント
+
+- **ui**: Shadcn UI のベースコンポーネント（再利用可能）
 - **features**: 機能ごとにグループ化されたコンポーネント
 - **layout**: アプリ全体のレイアウト要素
 
 ### `/lib` - ビジネスロジック
+
 - **supabase**: データベース接続・認証
-- **ai**: OpenAI連携・プロンプト管理
-- **api**: 外部API（Open Food Facts等）
+- **ai**: Gemini AI 連携・プロンプト管理
+- **api**: 外部 API（Open Food Facts 等）
 - **utils**: 共通ユーティリティ関数
 
-### `/hooks` - カスタムReactフック
+### `/hooks` - カスタム React フック
+
 データ取得・状態管理のロジックをカプセル化
 
-### `/stores` - グローバル状態管理
-Zustandを使用した軽量な状態管理
+### `/store` - グローバル状態管理
+
+Zustand を使用した軽量な状態管理
 
 ### `/types` - 型定義
-TypeScriptの型を一元管理
+
+TypeScript の型を一元管理
 
 ---
 

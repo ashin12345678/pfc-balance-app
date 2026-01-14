@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { ERROR_CODES, createErrorResponse, logError } from '@/lib/errors'
 
 // GET: 日次サマリーの取得
 export async function GET(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: '認証が必要です' },
+        createErrorResponse(ERROR_CODES.AUTH_REQUIRED),
         { status: 401 }
       )
     }
@@ -40,12 +41,9 @@ export async function GET(request: NextRequest) {
       data,
     })
   } catch (error) {
-    console.error('Summaries GET error:', error)
+    logError('Summaries GET', ERROR_CODES.SUMMARY_GET_FAILED, error)
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'サマリーの取得に失敗しました',
-      },
+      createErrorResponse(ERROR_CODES.SUMMARY_GET_FAILED, error),
       { status: 500 }
     )
   }
@@ -59,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: '認証が必要です' },
+        createErrorResponse(ERROR_CODES.AUTH_REQUIRED),
         { status: 401 }
       )
     }
@@ -69,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     if (!date) {
       return NextResponse.json(
-        { success: false, error: '日付が指定されていません' },
+        createErrorResponse(ERROR_CODES.INPUT_REQUIRED),
         { status: 400 }
       )
     }
@@ -99,12 +97,9 @@ export async function POST(request: NextRequest) {
       data,
     })
   } catch (error) {
-    console.error('Summaries POST error:', error)
+    logError('Summaries POST', ERROR_CODES.SUMMARY_UPDATE_FAILED, error)
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'サマリーの更新に失敗しました',
-      },
+      createErrorResponse(ERROR_CODES.SUMMARY_UPDATE_FAILED, error),
       { status: 500 }
     )
   }

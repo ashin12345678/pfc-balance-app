@@ -1,21 +1,21 @@
-# PFCバランス管理アプリ
+# PFC バランス管理アプリ
 
-AIを活用した食事のPFC（タンパク質・脂質・炭水化物）バランス管理Webアプリケーション。
+AI を活用した食事の PFC（タンパク質・脂質・炭水化物）バランス管理 Web アプリケーション。
 
 ## 機能
 
-- 🍽️ **AI食事解析**: 自然言語で食事を入力するとAIが自動で栄養素を解析
-- 📊 **バーコードスキャン**: JANコードをスキャンして食品情報を自動取得
-- 📈 **可視化**: PFCバランスや週間トレンドをグラフで表示
-- 🎯 **目標管理**: 個人の身体情報に基づいた目標カロリー・PFC計算
-- 💡 **AIアドバイス**: 1日の摂取状況に基づいた食事アドバイス
+- **AI 食事解析**: 自然言語で食事を入力すると AI が自動で栄養素を解析
+- **バーコードスキャン**: JAN コードをスキャンして食品情報を自動取得
+- **可視化**: PFC バランスや週間トレンドをグラフで表示
+- **目標管理**: 個人の身体情報に基づいた目標カロリー・PFC 計算
+- **AI アドバイス**: 1 日の摂取状況に基づいた食事アドバイス
 
 ## 技術スタック
 
-- **フロントエンド**: Next.js 14 (App Router), React, TypeScript
+- **フロントエンド**: Next.js 14+ (App Router), React, TypeScript
 - **スタイリング**: Tailwind CSS, Shadcn UI
 - **バックエンド**: Supabase (PostgreSQL, Auth)
-- **AI**: OpenAI GPT-4o
+- **AI**: Google Gemini (gemini-2.5-flash)
 - **状態管理**: Zustand
 - **チャート**: Recharts
 - **バーコードスキャン**: html5-qrcode
@@ -51,13 +51,13 @@ NEXT_PUBLIC_SUPABASE_URL=your-supabase-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# OpenAI
-OPENAI_API_KEY=your-openai-api-key
+# Google Gemini AI
+GEMINI_API_KEY=your-gemini-api-key
 ```
 
 ### 4. データベースのセットアップ
 
-Supabaseダッシュボードで `database/schema.sql` を実行してください。
+Supabase ダッシュボードで `database/schema.sql` を実行してください。
 
 ### 5. 開発サーバーの起動
 
@@ -92,7 +92,7 @@ http://localhost:3000 でアプリにアクセスできます。
 
 1. **アカウント作成**: 身長・体重・目標などを入力してプロフィールを設定
 2. **食事記録**: テキスト入力またはバーコードスキャンで食事を記録
-3. **ダッシュボード確認**: PFCバランスやカロリー達成度をチェック
+3. **ダッシュボード確認**: PFC バランスやカロリー達成度をチェック
 4. **履歴分析**: 週間トレンドを確認して食生活を改善
 
 ## ライセンス

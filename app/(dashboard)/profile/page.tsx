@@ -301,10 +301,10 @@ export default function ProfilePage() {
                     <SelectValue placeholder="選択してください" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sedentary">座り仕事が多い</SelectItem>
-                    <SelectItem value="lightly_active">軽い運動あり</SelectItem>
-                    <SelectItem value="moderately_active">適度な運動あり</SelectItem>
-                    <SelectItem value="very_active">激しい運動あり</SelectItem>
+                    <SelectItem value="sedentary">座り仕事が多い（デスクワーク中心、ほぼ運動なし）</SelectItem>
+                    <SelectItem value="lightly_active">軽い運動あり（週1〜2回の軽い運動、通勤で歩く程度）</SelectItem>
+                    <SelectItem value="moderately_active">適度な運動あり（週3〜5回の運動、立ち仕事）</SelectItem>
+                    <SelectItem value="very_active">激しい運動あり（毎日の運動、肉体労働）</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

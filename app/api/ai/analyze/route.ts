@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai'
 import { MEAL_ANALYSIS_PROMPT } from '@/lib/ai/prompts'
 import { parseMealAnalysisResponse } from '@/lib/ai/parsers'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { ERROR_CODES, createErrorResponse, logError } from '@/lib/errors'
 
 // リトライ設定
 const MAX_RETRIES = 3
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     
     if (!user) {
       return NextResponse.json(
-        { success: false, error: '認証が必要です' },
+        createErrorResponse(ERROR_CODES.AUTH_REQUIRED),
         { status: 401 }
       )
     }
@@ -58,9 +59,9 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY
     
     if (!apiKey) {
-      console.error('GEMINI_API_KEY is not set')
+      logError('AI Analyze', ERROR_CODES.AI_KEY_NOT_SET, 'GEMINI_API_KEY is not set')
       return NextResponse.json(
-        { success: false, error: 'Gemini APIキーが設定されていません' },
+        createErrorResponse(ERROR_CODES.AI_KEY_NOT_SET),
         { status: 500 }
       )
     }
@@ -72,14 +73,15 @@ export async function POST(request: NextRequest) {
 
     if (!text) {
       return NextResponse.json(
-        { success: false, error: '食事の説明を入力してください' },
+        createErrorResponse(ERROR_CODES.INPUT_REQUIRED),
         { status: 400 }
       )
     }
 
     // 入力のサニタイズ（プロンプトインジェクション対策）
+    // 最大500文字に制限
     const sanitizedText = String(text)
-      .slice(0, 500)  // 最大2500文字
+      .slice(0, 500)
       .replace(/[{}\[\]]/g, '')  // JSON構造文字を除去
     const sanitizedMealType = ['breakfast', 'lunch', 'dinner', 'snack'].includes(mealType) 
       ? mealType 
@@ -104,14 +106,17 @@ export async function POST(request: NextRequest) {
 
     const content = response.text
     if (!content) {
-      throw new Error('AI応答が空です')
+      return NextResponse.json(
+        createErrorResponse(ERROR_CODES.AI_EMPTY_RESPONSE),
+        { status: 500 }
+      )
     }
 
     const parsedResult = parseMealAnalysisResponse(content)
 
     if (!parsedResult) {
       return NextResponse.json(
-        { success: false, error: 'AI応答の解析に失敗しました' },
+        createErrorResponse(ERROR_CODES.AI_PARSE_FAILED),
         { status: 500 }
       )
     }
@@ -121,29 +126,22 @@ export async function POST(request: NextRequest) {
       data: parsedResult,
     })
   } catch (error: unknown) {
-    console.error('AI analysis error:', error)
+    logError('AI Analyze', ERROR_CODES.AI_ANALYSIS_FAILED, error)
     
-    let errorMessage = '解析に失敗しました'
-    let statusCode = 500
-    
+    // 503エラー（サーバー過負荷）の場合
     if (error instanceof Error) {
       const msg = error.message || ''
-      
-      // 503エラー（オーバーロード）の場合はユーザーフレンドリーなメッセージ
       if (msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE')) {
-        errorMessage = 'AIサーバーが混雑しています。しばらく待ってからもう一度お試しください。'
-        statusCode = 503
-      } else {
-        errorMessage = msg
+        return NextResponse.json(
+          createErrorResponse(ERROR_CODES.AI_SERVER_OVERLOADED, error),
+          { status: 503 }
+        )
       }
     }
     
     return NextResponse.json(
-      {
-        success: false,
-        error: errorMessage,
-      },
-      { status: statusCode }
+      createErrorResponse(ERROR_CODES.AI_ANALYSIS_FAILED, error),
+      { status: 500 }
     )
   }
 }

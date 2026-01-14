@@ -3,6 +3,7 @@ import { GoogleGenAI } from '@google/genai'
 import { ADVICE_PROMPT } from '@/lib/ai/prompts'
 import { parseAdviceResponse } from '@/lib/ai/parsers'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { ERROR_CODES, createErrorResponse, logError } from '@/lib/errors'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     
     if (!user) {
       return NextResponse.json(
-        { success: false, error: '認証が必要です' },
+        createErrorResponse(ERROR_CODES.AUTH_REQUIRED),
         { status: 401 }
       )
     }
@@ -20,9 +21,9 @@ export async function POST(request: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY
     
     if (!apiKey) {
-      console.error('GEMINI_API_KEY is not set')
+      logError('AI Advice', ERROR_CODES.AI_KEY_NOT_SET, 'GEMINI_API_KEY is not set')
       return NextResponse.json(
-        { success: false, error: 'Gemini APIキーが設定されていません' },
+        createErrorResponse(ERROR_CODES.AI_KEY_NOT_SET),
         { status: 500 }
       )
     }
@@ -69,7 +70,10 @@ ${userMessage}
 
     const content = response.text
     if (!content) {
-      throw new Error('AI応答が空です')
+      return NextResponse.json(
+        createErrorResponse(ERROR_CODES.AI_EMPTY_RESPONSE),
+        { status: 500 }
+      )
     }
 
     const parsedResult = parseAdviceResponse(content)
@@ -79,12 +83,21 @@ ${userMessage}
       data: parsedResult,
     })
   } catch (error) {
-    console.error('AI advice error:', error)
+    logError('AI Advice', ERROR_CODES.AI_ANALYSIS_FAILED, error)
+    
+    // 503エラー（サーバー過負荷）の場合
+    if (error instanceof Error) {
+      const msg = error.message || ''
+      if (msg.includes('503') || msg.includes('overloaded') || msg.includes('UNAVAILABLE')) {
+        return NextResponse.json(
+          createErrorResponse(ERROR_CODES.AI_SERVER_OVERLOADED, error),
+          { status: 503 }
+        )
+      }
+    }
+    
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'アドバイスの生成に失敗しました',
-      },
+      createErrorResponse(ERROR_CODES.AI_ANALYSIS_FAILED, error),
       { status: 500 }
     )
   }

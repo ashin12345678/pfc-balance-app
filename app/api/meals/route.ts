@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { ERROR_CODES, createErrorResponse, logError } from '@/lib/errors'
 
 // GET: 食事記録の取得
 export async function GET(request: NextRequest) {
@@ -9,7 +10,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: '認証が必要です' },
+        createErrorResponse(ERROR_CODES.AUTH_REQUIRED),
         { status: 401 }
       )
     }
@@ -50,12 +51,9 @@ export async function GET(request: NextRequest) {
       data,
     })
   } catch (error) {
-    console.error('Meals GET error:', error)
+    logError('Meals GET', ERROR_CODES.MEAL_GET_FAILED, error)
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : '食事記録の取得に失敗しました',
-      },
+      createErrorResponse(ERROR_CODES.MEAL_GET_FAILED, error),
       { status: 500 }
     )
   }
@@ -69,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: '認証が必要です' },
+        createErrorResponse(ERROR_CODES.AUTH_REQUIRED),
         { status: 401 }
       )
     }
@@ -119,12 +117,9 @@ export async function POST(request: NextRequest) {
       data,
     })
   } catch (error) {
-    console.error('Meals POST error:', error)
+    logError('Meals POST', ERROR_CODES.MEAL_CREATE_FAILED, error)
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : '食事記録の作成に失敗しました',
-      },
+      createErrorResponse(ERROR_CODES.MEAL_CREATE_FAILED, error),
       { status: 500 }
     )
   }
@@ -138,7 +133,7 @@ export async function DELETE(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: '認証が必要です' },
+        createErrorResponse(ERROR_CODES.AUTH_REQUIRED),
         { status: 401 }
       )
     }
@@ -171,7 +166,7 @@ export async function DELETE(request: NextRequest) {
     // 個別削除の場合
     if (!id) {
       return NextResponse.json(
-        { success: false, error: 'IDが指定されていません' },
+        createErrorResponse(ERROR_CODES.INPUT_REQUIRED),
         { status: 400 }
       )
     }
@@ -188,12 +183,9 @@ export async function DELETE(request: NextRequest) {
       success: true,
     })
   } catch (error) {
-    console.error('Meals DELETE error:', error)
+    logError('Meals DELETE', ERROR_CODES.MEAL_DELETE_FAILED, error)
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : '食事記録の削除に失敗しました',
-      },
+      createErrorResponse(ERROR_CODES.MEAL_DELETE_FAILED, error),
       { status: 500 }
     )
   }
@@ -207,7 +199,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: '認証が必要です' },
+        createErrorResponse(ERROR_CODES.AUTH_REQUIRED),
         { status: 401 }
       )
     }
@@ -217,7 +209,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json(
-        { success: false, error: 'IDが指定されていません' },
+        createErrorResponse(ERROR_CODES.INPUT_REQUIRED),
         { status: 400 }
       )
     }
@@ -244,12 +236,9 @@ export async function PATCH(request: NextRequest) {
       data,
     })
   } catch (error) {
-    console.error('Meals PATCH error:', error)
+    logError('Meals PATCH', ERROR_CODES.MEAL_UPDATE_FAILED, error)
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : '食事記録の更新に失敗しました',
-      },
+      createErrorResponse(ERROR_CODES.MEAL_UPDATE_FAILED, error),
       { status: 500 }
     )
   }

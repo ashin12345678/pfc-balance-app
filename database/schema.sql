@@ -49,6 +49,8 @@ CREATE TABLE profiles (
     activity_level TEXT NOT NULL DEFAULT 'moderately_active',
     
     -- 目標設定
+    -- [DEPRECATED] goalカラムは非推奨です。goal_typeを使用してください。
+    -- 将来のバージョンで削除予定
     goal TEXT DEFAULT 'maintain' CHECK (goal IN ('lose', 'maintain', 'gain')),
     goal_type TEXT NOT NULL DEFAULT 'maintain' CHECK (goal_type IN ('diet', 'maintain', 'bulk')),
     calorie_adjustment INTEGER NOT NULL DEFAULT 0,
